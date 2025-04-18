@@ -4,6 +4,9 @@ from sql_agent import SQLAgent
 import pandas as pd
 import os
 
+from dotenv import load_dotenv
+load_dotenv()
+ 
 # Configuração da página
 st.set_page_config(
     page_title="Agente SQL em Linguagem Natural",
