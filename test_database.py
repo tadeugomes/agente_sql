@@ -3,7 +3,7 @@ import sys
 from database_tools import DatabaseTools
 
 # Configurar o caminho do banco de dados dinamicamente
-DB_PATH = os.path.join(os.getcwd(), 'sql_agent', 'cargas.db')
+DB_PATH = os.path.join(os.getcwd(), 'cargas.db') # Removido 'sql_agent' do caminho
 
 # Verificar se o arquivo do banco de dados existe
 if not os.path.exists(DB_PATH):
