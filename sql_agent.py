@@ -1,0 +1,423 @@
+import os
+import sqlite3
+import json
+from dotenv import load_dotenv
+from langchain_community.chat_models import ChatOpenAI
+from langchain_community.utilities.sql_database import SQLDatabase
+from langchain_community.agent_toolkits import create_sql_agent
+from langchain.agents.agent_types import AgentType
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+# Carregar variáveis de ambiente do arquivo .env
+load_dotenv()
+
+# Obter a chave da OpenAI
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    raise ValueError("❌ Erro: OPENAI_API_KEY não encontrada nas variáveis de ambiente. Certifique-se de configurá-la no arquivo .env.")
+
+class SQLAgent:
+    def __init__(self, db_path=None):
+        """
+        Inicializa o LangChain SQL Agent com OpenAI e compreensão contextual.
+
+        Args:
+            db_path (str, optional): Caminho para o arquivo do banco de dados. 
+                                     Se não fornecido, tenta localizar na pasta de trabalho.
+        """
+        if db_path is None:
+            possible_paths = [
+                os.path.join(os.getcwd(), 'cargas.db'),
+                '/home/ubuntu/sql_agent/cargas.db',
+                '/Users/tgt/Documents/GitHub/agente_sql/cargas.db'
+            ]
+            for path in possible_paths:
+                if os.path.exists(path):
+                    db_path = path
+                    break
+            else:
+                raise FileNotFoundError("❌ Erro: O arquivo do banco de dados não foi encontrado em nenhum dos caminhos predefinidos.")
+        
+        self.db_path = db_path
+        self.memory = []  # Manter histórico de consultas
+        
+        # Carregar metadados do banco de dados
+        self.metadata = self._load_metadata()
+        
+        # Inicializar o modelo da OpenAI usando OpenRouter
+        llm = ChatOpenAI(
+            model="openai/gpt-4o",
+            openai_api_key=api_key,
+            openai_api_base="https://openrouter.ai/api/v1"
+        )
+
+        # Inicializar a conexão com o banco de dados SQL
+        db_uri = f"sqlite:///{db_path}"
+        self.db = SQLDatabase.from_uri(db_uri)
+        
+        # Criar o contexto para o agente SQL
+        context = self._create_context()
+        
+        # Criar o agente SQL com contexto personalizado
+        self.agent_executor = create_sql_agent(
+            llm=llm,
+            db=self.db,
+            agent_type="openai-tools",
+            verbose=True,
+            prefix=context
+        )
+    
+    def _load_metadata(self):
+        """
+        Carrega os metadados das tabelas de mapeamento do banco de dados.
+        
+        Returns:
+            dict: Dicionário contendo os metadados das tabelas.
+        """
+        metadata = {
+            "sentido": {},
+            "portos": {},
+            "paises_origem": {},
+            "paises_destino": {},
+            "tipo_navegacao": {},
+            "natureza_carga": {},
+            "conteiner_estado": {},
+            "mercadorias": {},
+            "anos_disponiveis": []
+        }
+        
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Carregar mapeamentos de Sentido
+            cursor.execute("SELECT codigo, descricao FROM Sentido")
+            for codigo, descricao in cursor.fetchall():
+                metadata["sentido"][codigo] = descricao
+            
+            # Carregar mapeamentos de Portos
+            cursor.execute("SELECT codigo, nome FROM Portos")
+            for codigo, nome in cursor.fetchall():
+                metadata["portos"][codigo] = nome
+            
+            # Carregar mapeamentos de Países de Origem
+            cursor.execute("SELECT codigo, nome FROM PaisesOrigem")
+            for codigo, nome in cursor.fetchall():
+                metadata["paises_origem"][codigo] = nome
+            
+            # Carregar mapeamentos de Países de Destino
+            cursor.execute("SELECT codigo, nome FROM PaisesDestino")
+            for codigo, nome in cursor.fetchall():
+                metadata["paises_destino"][codigo] = nome
+            
+            # Carregar mapeamentos de Tipo de Navegação
+            cursor.execute("SELECT codigo, descricao FROM TipoNavegacao")
+            for codigo, descricao in cursor.fetchall():
+                metadata["tipo_navegacao"][codigo] = descricao
+            
+            # Carregar mapeamentos de Natureza da Carga
+            cursor.execute("SELECT codigo, descricao FROM NaturezaCarga")
+            for codigo, descricao in cursor.fetchall():
+                metadata["natureza_carga"][codigo] = descricao
+            
+            # Carregar mapeamentos de Estado do Contêiner
+            cursor.execute("SELECT codigo, descricao FROM ConteinerEstado")
+            for codigo, descricao in cursor.fetchall():
+                metadata["conteiner_estado"][codigo] = descricao
+            
+            # Carregar mapeamentos de Mercadorias
+            cursor.execute("SELECT codigo, descricao FROM CDMercadoria")
+            for codigo, descricao in cursor.fetchall():
+                metadata["mercadorias"][codigo] = descricao
+            
+            # Obter anos disponíveis
+            cursor.execute("SELECT DISTINCT Ano FROM Cargas ORDER BY Ano")
+            metadata["anos_disponiveis"] = [ano[0] for ano in cursor.fetchall()]
+            
+            conn.close()
+        except Exception as e:
+            print(f"Erro ao carregar metadados: {e}")
+        
+        return metadata
+    
+    def _create_context(self):
+        """
+        Cria o contexto para o agente SQL com base nos metadados.
+        
+        Returns:
+            str: Contexto para o agente SQL.
+        """
+        context = """
+Você é um assistente especializado em consultas SQL para um banco de dados de cargas portuárias.
+
+IMPORTANTE: Ao analisar consultas em linguagem natural, você deve entender o contexto e os termos específicos:
+
+1. SENTIDO DAS CARGAS:
+   - "Embarcados" ou "embarcadas" refere-se a exportações (código 2 na tabela Sentido, valor "Embarcados" na coluna Sentido da tabela Cargas)
+   - "Desembarcados" ou "desembarcadas" refere-se a importações (código 1 na tabela Sentido, valor "Desembarcados" na coluna Sentido da tabela Cargas)
+   - "Movimentadas" ou "movimentação" refere-se ao total de cargas, incluindo TANTO exportações (Embarcados) QUANTO importações (Desembarcados)
+
+2. MÉTRICAS DE QUANTIDADE:
+   - "Toneladas" refere-se à coluna "VLPesoCargaBruta" na tabela Cargas
+   - "TEUs" refere-se à coluna "TEU" na tabela Cargas (Twenty-foot Equivalent Unit, medida para contêineres)
+   - "Quantidade" ou "volume" geralmente se refere à coluna "VLPesoCargaBruta", mas pode se referir a "QTCarga" dependendo do contexto
+
+3. PORTOS:
+   - Quando mencionarem nomes de portos como "Porto do Itaqui", você deve relacionar com o código correspondente (ex: "BRIQI" para Itaqui)
+   - Outros códigos importantes: "BRPNG" para Paranaguá, "BRANT" para Antonina, "BRSSZ" para Santos
+   - Para o Porto de Santos, considere também o terminal "DP World Santos" com código "BRSP008"
+   - Verifique se o porto está na origem ou no destino da carga
+
+4. PAÍSES:
+   - Quando mencionarem nomes de países, relacione com os códigos correspondentes nas tabelas PaisesOrigem e PaisesDestino
+   - Verifique se o país está na origem (Pais_Origem) ou no destino (Pais_Destino) da carga
+
+5. TIPOS DE NAVEGAÇÃO:
+   - "Cabotagem" refere-se ao transporte entre portos do mesmo país (código 3 na tabela TipoNavegacao)
+   - "Longo curso" refere-se ao transporte internacional (código 5 na tabela TipoNavegacao)
+   - "Navegação interior" refere-se ao transporte em rios e lagos (código 1 na tabela TipoNavegacao)
+   - "Apoio marítimo" refere-se a embarcações de apoio offshore (código 4 na tabela TipoNavegacao)
+   - "Apoio portuário" refere-se a embarcações que operam dentro do porto (código 2 na tabela TipoNavegacao)
+
+6. NATUREZA DA CARGA:
+   - "Granel sólido" refere-se a cargas como minério, grãos, etc.
+   - "Granel líquido" refere-se a cargas como petróleo, combustíveis, etc.
+   - "Carga geral" refere-se a cargas diversas não classificadas como granel
+   - "Carga conteinerizada" refere-se a cargas transportadas em contêineres
+
+7. MERCADORIAS:
+   - Quando mencionarem tipos específicos de mercadorias, relacione com os códigos na tabela CDMercadoria
+   - Exemplos: "animais vivos", "petróleo", "veículos", etc.
+
+8. PERÍODOS DE TEMPO:
+   - "Mensal" ou "por mês" significa agrupar por mês usando a função strftime('%m', Ano)
+   - "Trimestral" ou "por trimestre" significa agrupar por trimestre
+   - "Semestral" ou "por semestre" significa agrupar por semestre
+   - "Anual" ou "por ano" significa agrupar por ano
+
+9. COMPARAÇÕES:
+   - "Mais que", "maior que", "acima de" significa usar o operador >
+   - "Menos que", "menor que", "abaixo de" significa usar o operador <
+   - "Entre" significa usar BETWEEN ou combinação de > e <
+
+10. AGREGAÇÕES:
+    - "Total", "soma" significa usar a função SUM()
+    - "Média" significa usar a função AVG()
+    - "Máximo" significa usar a função MAX()
+    - "Mínimo" significa usar a função MIN()
+    - "Contagem" significa usar a função COUNT()
+
+11. ANOS:
+    - Os dados disponíveis são para os seguintes anos: {anos}
+    - Se perguntarem sobre anos não disponíveis, informe que não há dados para esse período
+    - Ao processar consultas que especificam um ano, sempre considere o período completo do ano (de 01/01 a 31/12)
+
+12. CONSIDERAÇÕES GERAIS:
+    - IMPORTANTE: Para TODAS as consultas sobre portos, cargas, períodos ou qualquer outro critério específico, SEMPRE aplique a lógica de consulta ampliada demonstrada nos exemplos abaixo
+    - Ao processar consultas sobre portos específicos, considere TODOS os terminais relacionados àquele porto (públicos e privados)
+    - Para consultas sobre Santos, inclua tanto o código "BRSSZ" quanto "BRSP008" (DP World Santos)
+    - Para consultas sobre qualquer porto, verifique se o porto está na origem (para exportações) ou no destino (para importações)
+    - SEMPRE amplie as consultas para capturar mais dados relevantes, usando técnicas como ILIKE para nomes parciais (ex: '%santos%', '%terminal%', '%porto%')
+    - Para consultas sobre períodos, SEMPRE considere o período completo (ex: para um ano, use BETWEEN '2023-01-01' AND '2023-12-31')
+    - Para consultas sobre tipos de carga, use ILIKE com padrões amplos para capturar todas as variações relevantes
+    - Quando relevante, agrupe os resultados por critérios significativos (ex: por sentido, por mês, por tipo de carga)
+    - Sempre inclua contagens (COUNT) além de somas (SUM) para fornecer contexto adicional sobre os dados
+
+EXEMPLOS DE CONSULTAS:
+
+1. "Quantas toneladas foram embarcadas pelo Porto do Itaqui em 2023?"
+   - Isso significa: Qual a soma de VLPesoCargaBruta para registros onde Sentido = "Embarcados" e Origem = "BRIQI" e Ano = "2023"
+
+2. "Qual o total de carga desembarcada em Santos em 2023?"
+   - Isso significa: Qual a soma de VLPesoCargaBruta para registros onde Sentido = "Desembarcados" e Destino = "BRSSZ" e Ano = "2023"
+
+3. "Quantos TEUs de contêineres foram movimentados em 2023?"
+   - Isso significa: Qual a soma de TEU para todos os registros onde Ano = "2023"
+
+4. "Qual o volume de granéis líquidos exportados em 2023?"
+   - Isso significa: Qual a soma de VLPesoCargaBruta para registros onde Natureza_da_Carga = "Granel Líquido e Gasoso" e Sentido = "Embarcados" e Ano = "2023"
+
+5. "Quais os 5 principais países de destino das exportações brasileiras em 2023?"
+   - Isso significa: Selecionar Pais_Destino, soma de VLPesoCargaBruta agrupado por Pais_Destino onde Sentido = "Embarcados" e Ano = "2023" ordenado por soma de VLPesoCargaBruta decrescente limitado a 5
+
+6. "Qual a média mensal de cargas de cabotagem em 2023?"
+   - Isso significa: Calcular a média (AVG) da soma de VLPesoCargaBruta por mês onde TipoNavegacao_Codigo = "3" e Ano = "2023"
+
+7. "Quais portos movimentaram mais de 1 milhão de toneladas em 2023?"
+   - Isso significa: Selecionar Origem_Nome ou Destino_Nome e soma de VLPesoCargaBruta agrupado por porto onde a soma de VLPesoCargaBruta > 1000000 e Ano = "2023"
+
+8. "Qual o volume de cargas movimentadas pelo Porto do Itaqui em 2024?"
+   - Isso significa: Qual a soma de VLPesoCargaBruta para registros onde ((Sentido = "Embarcados" E Origem = "BRIQI") OU (Sentido = "Desembarcados" E Destino = "BRIQI")) e Ano = "2024"
+
+9. "Quantas toneladas foram movimentadas pelo porto do itaqui em 2023?"
+   - Isso significa: Qual a soma de VLPesoCargaBruta para registros onde ((Sentido = "Embarcados" E Origem = "BRIQI") OU (Sentido = "Desembarcados" E Destino = "BRIQI")) e Ano = "2023"
+
+10. "Quantas toneladas foram movimentadas pelos portos de Paranaguá e Antonina em 2023?"
+   - Isso significa: Qual a soma de VLPesoCargaBruta para registros onde ((Sentido = "Embarcados" E Origem IN ("BRPNG", "BRANT")) OU (Sentido = "Desembarcados" E Destino IN ("BRPNG", "BRANT"))) e Ano = "2023"
+   - Nota: Esta consulta deve ser ampliada para incluir todos os terminais da região, tanto públicos quanto privados.
+   - Exemplo de consulta PostgreSQL:
+     ```
+     SELECT 
+         SUM(peso_carga) as total_toneladas,
+         COUNT(*) as total_movimentacoes,
+         m.sentido
+     FROM movimentacoes m
+     JOIN instalacoes i ON m.destino_codigo = i.codigo
+     WHERE (i.nome ILIKE '%paranaguá%' OR i.nome ILIKE '%antonina%' OR i.nome ILIKE '%terminal%' OR i.nome ILIKE '%porto%')
+     AND m.data_movimentacao BETWEEN '2023-01-01' AND '2023-12-31'
+     GROUP BY m.sentido
+     ```
+
+11. "Quantas toneladas foram embarcadas pelo porto de Santos em 2024?"
+   - Isso significa: Qual a soma de VLPesoCargaBruta para registros onde Sentido = "Embarcados" e Origem IN ("BRSSZ", "BRSP008") e Ano = "2024"
+
+12. "Quantas toneladas foram exportadas por Santos em 2023?"
+   - Isso significa: Qual a soma de VLPesoCargaBruta para registros onde Sentido = "Embarcados" e Origem IN ("BRSSZ", "BRSP008") e Ano = "2023"
+   - Nota: Esta consulta pode ser ampliada para incluir todos os terminais da região de Santos, considerando o período completo de 2023.
+   - Exemplo de consulta PostgreSQL:
+     ```
+     SELECT 
+         SUM(peso_carga) as total_toneladas,
+         COUNT(*) as total_movimentacoes
+     FROM movimentacoes m
+     JOIN instalacoes i ON m.destino_codigo = i.codigo
+     WHERE (i.nome ILIKE '%santos%' OR i.nome ILIKE '%terminal%')
+     AND m.data_movimentacao BETWEEN '2023-01-01' AND '2023-12-31'
+     AND m.sentido = 'Exportação'
+     ```
+
+13. "Qual o volume de cargas importadas pelo Porto de Itaqui em 2024?"
+   - Isso significa: Qual a soma de VLPesoCargaBruta para registros onde Sentido = "Desembarcados" e Destino = "BRIQI" e Ano = "2024"
+   - Nota: Esta consulta deve ser ampliada para incluir todos os terminais da região de Itaqui, considerando o período completo de 2024.
+   - Exemplo de consulta PostgreSQL:
+     ```
+     SELECT 
+         SUM(peso_carga) as total_toneladas,
+         COUNT(*) as total_movimentacoes
+     FROM movimentacoes m
+     JOIN instalacoes i ON m.origem_codigo = i.codigo
+     WHERE (i.nome ILIKE '%itaqui%' OR i.nome ILIKE '%terminal%itaqui%')
+     AND m.data_movimentacao BETWEEN '2024-01-01' AND '2024-12-31'
+     AND m.sentido = 'Importação'
+     ```
+
+14. "Quantas toneladas de granel sólido foram movimentadas em Paranaguá em 2023?"
+   - Isso significa: Qual a soma de VLPesoCargaBruta para registros onde ((Sentido = "Embarcados" E Origem = "BRPNG") OU (Sentido = "Desembarcados" E Destino = "BRPNG")) e Natureza_da_Carga = "Granel Sólido" e Ano = "2023"
+   - Nota: Esta consulta deve ser ampliada para incluir todos os terminais da região de Paranaguá, considerando o período completo de 2023.
+   - Exemplo de consulta PostgreSQL:
+     ```
+     SELECT 
+         SUM(peso_carga) as total_toneladas,
+         COUNT(*) as total_movimentacoes
+     FROM movimentacoes m
+     JOIN instalacoes i ON (m.origem_codigo = i.codigo OR m.destino_codigo = i.codigo)
+     JOIN natureza_carga nc ON m.natureza_carga_id = nc.id
+     WHERE (i.nome ILIKE '%paranagua%' OR i.nome ILIKE '%terminal%paranagua%')
+     AND nc.descricao ILIKE '%granel sólido%'
+     AND m.data_movimentacao BETWEEN '2023-01-01' AND '2023-12-31'
+     ```
+
+15. "Quantas toneladas de cargas foram movimentadas pelo Porto de Santos em 2024?"
+   - Isso significa: Qual a soma de VLPesoCargaBruta para registros onde ((Sentido = "Embarcados" E Origem IN ("BRSSZ", "BRSP008")) OU (Sentido = "Desembarcados" E Destino IN ("BRSSZ", "BRSP008"))) e Ano = "2024"
+   - Nota: Esta consulta deve ser ampliada para incluir todos os terminais da região de Santos, considerando o período completo de 2024.
+   - Exemplo de consulta PostgreSQL:
+     ```
+     SELECT 
+         SUM(peso_carga) as total_toneladas,
+         COUNT(*) as total_movimentacoes,
+         m.sentido
+     FROM movimentacoes m
+     JOIN instalacoes i ON m.destino_codigo = i.codigo
+     WHERE (i.nome ILIKE '%santos%' OR i.nome ILIKE '%terminal%' OR i.nome ILIKE '%porto%')
+     AND m.data_movimentacao BETWEEN '2024-01-01' AND '2024-12-31'
+     GROUP BY m.sentido
+     ```
+
+Lembre-se de verificar tanto a coluna Origem quanto Destino ao buscar por um porto específico, pois o porto pode estar em qualquer uma dessas colunas dependendo do sentido da carga.
+"""
+        
+        # Adicionar anos disponíveis ao contexto
+        anos_str = ", ".join(self.metadata["anos_disponiveis"])
+        context = context.format(anos=anos_str)
+        
+        return context
+
+    def process_query(self, query):
+        """
+        Processa uma consulta em linguagem natural usando o LangChain SQL Agent.
+
+        Args:
+            query (str): Consulta em linguagem natural.
+
+        Returns:
+            dict: Dicionário contendo a consulta original, um placeholder para SQL, e o resultado do agente.
+        """
+        try:
+            # Invocar o agente
+            result = self.agent_executor.invoke({"input": query})
+            agent_output = result.get("output", "No output found.")
+
+            # Armazenar no histórico
+            self.memory.append({
+                "query": query,
+                "sql": "N/A (handled by LangChain agent)",
+                "result": agent_output
+            })
+
+            return {
+                "query": query,
+                "sql": "N/A (handled by LangChain agent)",
+                "result": agent_output
+            }
+        except Exception as e:
+            print(f"Erro ao processar consulta com LangChain Agent: {e}")
+            error_message = f"Erro: {str(e)}"
+            self.memory.append({
+                "query": query,
+                "sql": "Error during agent execution",
+                "result": error_message
+            })
+            return {
+                "query": query,
+                "sql": "Error during agent execution",
+                "result": error_message
+            }
+
+    def get_memory(self):
+        """
+        Retorna o histórico de consultas processadas.
+
+        Returns:
+            list: Lista de dicionários contendo as consultas processadas.
+        """
+        return self.memory
+
+# Example usage (optional, for testing)
+if __name__ == '__main__':
+    try:
+        # Assuming database_tools.py is not needed directly by the agent anymore
+        # but might be needed elsewhere or for setup.
+        # from database_tools import DatabaseTools 
+        # db_tools = DatabaseTools() # If needed for path finding initially
+
+        agent = SQLAgent() # db_path will be auto-detected
+
+        # Test query
+        test_query = "Quantas cargas foram registradas no ano de 2023?"
+        response = agent.process_query(test_query)
+        print("\n--- Test Query Response ---")
+        print(f"Query: {response['query']}")
+        print(f"SQL: {response['sql']}")
+        print(f"Result: {response['result']}")
+        print("-------------------------\n")
+
+        test_query_2 = "Quais as 5 mercadorias mais frequentes?"
+        response_2 = agent.process_query(test_query_2)
+        print("\n--- Test Query 2 Response ---")
+        print(f"Query: {response_2['query']}")
+        print(f"SQL: {response_2['sql']}")
+        print(f"Result: {response_2['result']}")
+        print("--------------------------\n")
+
+    except Exception as e:
+        print(f"An error occurred during testing: {e}")

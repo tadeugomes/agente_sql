@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agente SQL em Linguagem Natural</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7f9;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: #1E3A8A;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+        .main {
+            flex: 2;
+            min-width: 300px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-right: 20px;
+        }
+        .sidebar {
+            flex: 1;
+            min-width: 250px;
+            padding: 20px;
+            background-color: #EFF6FF;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .feature {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .feature:last-child {
+            border-bottom: none;
+        }
+        .feature h3 {
+            color: #1E3A8A;
+            margin-top: 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #1E3A8A;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        .cta-button:hover {
+            background-color: #2563EB;
+        }
+        .screenshot {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .info-box {
+            background-color: #EFF6FF;
+            border-left: 4px solid #1E3A8A;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            background-color: #1E3A8A;
+            color: white;
+        }
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            .main {
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🤖 Agente SQL em Linguagem Natural</h1>
+            <p class="subtitle">Consulte bancos de dados usando linguagem natural</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="content">
+            <main class="main">
+                <div class="feature">
+                    <h2>Sobre o Projeto</h2>
+                    <p>O Agente SQL em Linguagem Natural é uma aplicação que permite consultar bancos de dados usando linguagem natural. Desenvolvido com tecnologias modernas como SQLite, Streamlit e processamento de linguagem natural, este agente traduz perguntas comuns em consultas SQL e retorna os resultados de forma clara e intuitiva.</p>
+                    
+                    <div class="info-box">
+                        <p><strong>Exemplo:</strong> Digite "Quais são as 5 mercadorias mais frequentes?" e o agente gerará e executará a consulta SQL correspondente.</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <h2>Funcionalidades</h2>
+                    <ul>
+                        <li><strong>Consultas em linguagem natural:</strong> Faça perguntas em português e obtenha resultados do banco de dados</li>
+                        <li><strong>Visualização da consulta SQL:</strong> Veja a consulta SQL gerada a partir da sua pergunta</li>
+                        <li><strong>Visualização de dados:</strong> Resultados apresentados em tabelas e gráficos interativos</li>
+                        <li><strong>Exploração do esquema:</strong> Visualize a estrutura do banco de dados e amostras de dados</li>
+                        <li><strong>Histórico de consultas:</strong> Acesse suas consultas anteriores e seus resultados</li>
+                        <li><strong>Exportação de dados:</strong> Baixe os resultados em formato CSV</li>
+                    </ul>
+                </div>
+
+                <div class="feature">
+                    <h2>Como Acessar</h2>
+                    <p>A aplicação está disponível online através do link abaixo. Basta clicar e começar a fazer suas consultas em linguagem natural!</p>
+                    <a href="http://8501-il30jedtwfdlg1kmoeo50-de21ec5f.manus.computer" class="cta-button">Acessar o Agente SQL</a>
+                    
+                    <p class="info-box">
+                        <strong>Nota:</strong> A aplicação está hospedada em um servidor temporário. O link acima estará disponível enquanto o servidor estiver em execução.
+                    </p>
+                </div>
+            </main>
+
+            <aside class="sidebar">
+                <h3>Exemplos de Consultas</h3>
+                <ul>
+                    <li>Quantas cargas foram registradas em 2023?</li>
+                    <li>Quais são as 5 mercadorias mais frequentes?</li>
+                    <li>Qual é o peso médio das cargas por tipo de navegação?</li>
+                    <li>Quais são as principais origens e destinos?</li>
+                    <li>Quais são as naturezas de carga mais comuns?</li>
+                </ul>
+
+                <h3>Tecnologias Utilizadas</h3>
+                <ul>
+                    <li>SQLite para armazenamento de dados</li>
+                    <li>Streamlit para interface do usuário</li>
+                    <li>Pandas para manipulação de dados</li>
+                    <li>Processamento de linguagem natural para tradução de consultas</li>
+                </ul>
+
+                <h3>Sobre os Dados</h3>
+                <p>O banco de dados contém informações sobre cargas, incluindo origem, destino, tipo de mercadoria, peso, e muito mais. Os dados são organizados em várias tabelas relacionadas.</p>
+            </aside>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>© 2025 Agente SQL em Linguagem Natural | Desenvolvido com Streamlit e SQLite</p>
+        </div>
+    </footer>
+</body>
+</html>
