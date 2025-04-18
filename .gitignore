@@ -49,3 +49,6 @@ ENV/
 # Embedded Git repositories
 agente/
 agente_sql/
+
+# Large files
+carga_encoded.csv
