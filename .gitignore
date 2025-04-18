@@ -52,3 +52,6 @@ agente_sql/
 
 # Large files
 carga_encoded.csv
+
+# Streamlit secrets
+.streamlit/secrets.toml

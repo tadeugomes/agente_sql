@@ -13,8 +13,17 @@ load_dotenv()
 
 # Obter a chave da OpenAI
 api_key = os.getenv("OPENAI_API_KEY")
+
+# Se não encontrar no ambiente, tenta buscar nos secrets do Streamlit
 if not api_key:
-    raise ValueError("❌ Erro: OPENAI_API_KEY não encontrada nas variáveis de ambiente. Certifique-se de configurá-la no arquivo .env.")
+    try:
+        import streamlit as st
+        api_key = st.secrets["OPENAI_API_KEY"]
+    except (KeyError, ImportError, FileNotFoundError):
+        api_key = None
+
+if not api_key:
+    raise ValueError("❌ Erro: OPENAI_API_KEY não encontrada nas variáveis de ambiente ou nos secrets do Streamlit. Certifique-se de configurá-la no arquivo .env ou no .streamlit/secrets.toml.")
 
 class SQLAgent:
     def __init__(self, db_path=None):

@@ -1,84 +1,82 @@
-# Agente SQL em Linguagem Natural - Documentação
+# Agente SQL em Linguagem Natural
 
-## Visão Geral
+Este aplicativo permite fazer consultas em linguagem natural a um banco de dados de cargas portuárias. O agente de IA traduz perguntas em linguagem natural para SQL e retorna os resultados.
 
-Este projeto implementa um agente de IA local capaz de processar consultas em linguagem natural e traduzi-las para comandos SQL. O sistema utiliza um banco de dados SQLite para armazenar e consultar dados de cargas, com uma interface Streamlit para interação com o usuário.
+## Configuração Local
+
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/tadeugomes/agente_sql.git
+   cd agente_sql
+   ```
+
+2. Crie e ative um ambiente virtual:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # No Windows: venv\Scripts\activate
+   ```
+
+3. Instale as dependências:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Configure as variáveis de ambiente:
+   - Crie um arquivo `.env` na raiz do projeto com o seguinte conteúdo:
+     ```
+     OPENAI_API_KEY=sua-chave-da-api-aqui
+     GOOGLE_API_KEY=sua-chave-do-google-aqui  # Se necessário
+     ```
+
+5. Execute o aplicativo:
+   ```bash
+   streamlit run app.py
+   ```
+
+## Implantação no Streamlit Cloud
+
+### Preparação para Implantação
+
+1. Certifique-se de que o repositório esteja no GitHub.
+
+2. Adicione o arquivo `.streamlit/secrets.toml` ao `.gitignore` para não expor suas chaves de API.
+
+3. Certifique-se de que o arquivo `requirements.txt` esteja atualizado com todas as dependências necessárias.
+
+### Configuração no Streamlit Cloud
+
+1. Acesse [Streamlit Cloud](https://streamlit.io/cloud) e faça login com sua conta GitHub.
+
+2. Clique em "New app" e selecione o repositório, branch e arquivo principal (app.py).
+
+3. Configure os segredos (secrets):
+   - Na página do seu aplicativo no Streamlit Cloud, clique em "Advanced settings".
+   - Na seção "Secrets", adicione suas chaves de API no formato TOML:
+     ```toml
+     OPENAI_API_KEY = "sua-chave-da-api-aqui"
+     GOOGLE_API_KEY = "sua-chave-do-google-aqui"  # Se necessário
+     ```
+
+4. Clique em "Deploy" para implantar o aplicativo.
+
+### Solução de Problemas
+
+Se você encontrar o erro `OPENAI_API_KEY não encontrada nas variáveis de ambiente`, verifique se:
+
+1. As chaves de API estão corretamente configuradas nos segredos do Streamlit Cloud.
+2. O código está configurado para buscar as chaves tanto das variáveis de ambiente quanto dos segredos do Streamlit.
 
 ## Estrutura do Projeto
 
-```
-/home/ubuntu/sql_agent/
-├── app.py                  # Interface Streamlit
-├── create_database.py      # Script para criar e popular o banco de dados
-├── database_tools.py       # Ferramentas para interação com o banco de dados
-├── sql_agent.py            # Agente para tradução de linguagem natural para SQL
-├── test_agent.py           # Testes para o agente SQL
-├── test_database.py        # Testes para as ferramentas de banco de dados
-└── cargas.db               # Banco de dados SQLite
-```
+- `app.py`: Aplicativo Streamlit principal
+- `sql_agent.py`: Implementação do agente SQL usando LangChain
+- `.streamlit/`: Configurações do Streamlit
+- `requirements.txt`: Dependências do projeto
 
-## Componentes Principais
+## Dependências Principais
 
-### 1. Banco de Dados SQLite
-
-O banco de dados contém as seguintes tabelas:
-- `Cargas`: Tabela principal com dados de cargas (50.000 registros de amostra)
-- `CDMercadoria`: Códigos e descrições de mercadorias
-- `Portos`: Códigos e nomes de portos
-- `PaisesOrigem`: Códigos e nomes de países de origem
-- `PaisesDestino`: Códigos e nomes de países de destino
-- `TipoNavegacao`: Códigos e descrições de tipos de navegação
-- `Sentido`: Códigos e descrições de sentidos (embarque/desembarque)
-- `NaturezaCarga`: Códigos e descrições de naturezas de carga
-- `ConteinerEstado`: Códigos e descrições de estados de contêiner
-
-### 2. Ferramentas de Interação com o Banco de Dados
-
-A classe `DatabaseTools` fornece métodos para:
-- Listar tabelas disponíveis
-- Descrever a estrutura de uma tabela
-- Amostrar linhas de uma tabela
-- Executar consultas SQL diretamente
-
-### 3. Agente SQL
-
-A classe `SQLAgent` implementa:
-- Tradução de consultas em linguagem natural para SQL
-- Execução de consultas SQL
-- Armazenamento de histórico de consultas
-
-### 4. Interface do Usuário
-
-A interface Streamlit oferece:
-- Campo para entrada de perguntas em linguagem natural
-- Exibição da consulta SQL gerada
-- Visualização dos resultados em tabelas
-- Acesso ao esquema do banco de dados
-- Histórico de interações
-
-## Como Executar
-
-1. Certifique-se de que todas as dependências estão instaladas:
-   ```
-   pip install langchain langchain-community pandas streamlit
-   ```
-
-2. Execute a aplicação Streamlit:
-   ```
-   streamlit run /home/ubuntu/sql_agent/app.py
-   ```
-
-## Limitações e Considerações
-
-- A implementação atual do agente SQL utiliza uma abordagem baseada em regras para traduzir consultas em linguagem natural para SQL, em vez de um modelo de linguagem completo, devido a limitações de espaço em disco.
-- O banco de dados contém uma amostra de 50.000 registros do conjunto de dados original para fins de teste.
-- As consultas suportadas são limitadas aos padrões implementados no agente SQL.
-
-## Exemplos de Consultas
-
-O agente pode responder a perguntas como:
-- "Quantas cargas foram registradas em 2023?"
-- "Quais são as 5 mercadorias mais frequentes?"
-- "Qual é o peso médio das cargas por tipo de navegação?"
-- "Quais são as principais origens e destinos?"
-- "Quais são as naturezas de carga mais comuns?"
+- streamlit
+- langchain
+- openai
+- python-dotenv
+- sqlalchemy
