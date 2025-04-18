@@ -5,3 +5,6 @@ langchain
 langchain-google-genai
 sqlalchemy
 python-dotenv
+langchain
+langchain-community
+openai
