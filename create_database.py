@@ -3,6 +3,10 @@ import sqlite3
 import json
 import os
 
+# Este script cria o banco de dados cargas.db com uma restrição de 10.000 registros
+# para fins de desenvolvimento e teste. A restrição é implementada durante a importação
+# dos dados do CSV.
+
 # Definir caminhos dos arquivos
 csv_path = os.path.join(os.getcwd(),'carga_encoded.csv')
 json_path = os.path.join(os.getcwd(),'mapeamentos.json')
@@ -171,8 +175,11 @@ for i, coluna in enumerate(colunas):
 create_table_sql = create_table_sql.rstrip(',') + ',\n    PRIMARY KEY ("IDCarga")\n)'
 cursor.execute(create_table_sql)
 
+# Definir o limite de registros
+max_rows = 10000  # Limite de 10.000 registros
+
 print("Tabela principal criada com sucesso!")
-print("Iniciando importação dos dados do CSV (isso pode levar algum tempo)...")
+print(f"Iniciando importação dos dados do CSV (limitado a {max_rows} registros)...")
 
 # Atualizar o mapeamento de colunas para incluir todas as colunas
 column_mapping_complete = {}
@@ -185,6 +192,14 @@ total_rows = 0
 
 try:
     for chunk in pd.read_csv(csv_path, chunksize=chunksize):
+        # Verificar se já atingimos o limite de registros
+        if total_rows >= max_rows:
+            break
+            
+        # Se este chunk fizer ultrapassar o limite, cortar o chunk
+        if total_rows + len(chunk) > max_rows:
+            chunk = chunk.iloc[:(max_rows - total_rows)]
+            
         # Renomear colunas no DataFrame
         chunk = chunk.rename(columns=column_mapping_complete)
         
@@ -210,6 +225,11 @@ try:
         
         total_rows += len(records)
         print(f"Importados {total_rows} registros...")
+        
+        # Verificar novamente se atingimos o limite após a importação
+        if total_rows >= max_rows:
+            print(f"Limite de {max_rows} registros atingido. Importação concluída.")
+            break
             
 except Exception as e:
     print(f"Erro durante a importação: {e}")
