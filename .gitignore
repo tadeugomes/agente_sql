@@ -24,7 +24,9 @@ var/
 # .env
 
 # Database
+# Excluding cargas.db so it can be tracked in the repository
 *.db
+!cargas.db
 *.sqlite3
 
 # OS specific
