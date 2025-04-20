@@ -2,9 +2,9 @@
 
 This guide provides instructions on how to remove sensitive information like API keys from your Git history.
 
-## Option 1: Using the Provided Script (Recommended for Most Users)
+## Option 1: Using the Improved Script (Recommended)
 
-We've created a script that automates the process of removing API keys from your Git history using `git filter-branch`.
+We've created an improved script that automates the process of removing API keys from your Git history. This script is more robust and can handle various edge cases.
 
 ### Prerequisites
 
@@ -16,23 +16,34 @@ We've created a script that automates the process of removing API keys from your
 
 1. Make sure you have committed all current changes
 2. Create a backup of your repository (the script will do this automatically)
-3. Run the script:
+3. Run the improved script:
    ```bash
-   ./remove_api_key_from_history.sh
+   ./remove_api_key_improved.sh
    ```
 4. Follow the prompts in the script:
    - Confirm you want to proceed
-   - Enter the pattern that matches your API key
-   - Confirm the pattern is correct
+   - Enter the actual API key to remove (not a pattern)
+   - Confirm the key is correct
 5. The script will:
    - Create a backup of your repository
-   - Remove the API key from all .env and .py files in your history
+   - Try to use BFG Repo-Cleaner or git-filter-repo if available
+   - Fall back to git filter-branch with improved handling if needed
    - Clean up the repository
 6. After the script completes, force push to your remote repository:
    ```bash
    git push --force origin main
    ```
    (Replace 'main' with your branch name if different)
+
+## Option 2: Using the Original Script
+
+If you prefer, you can still use the original script which uses `git filter-branch` with pattern matching:
+
+```bash
+./remove_api_key_from_history.sh
+```
+
+Note: This script may encounter issues with files that don't exist in all commits.
 
 ## Option 2: Using BFG Repo-Cleaner (For Larger Repositories)
 
