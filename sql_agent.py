@@ -2,7 +2,7 @@ import os
 import sqlite3
 import json
 from dotenv import load_dotenv
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI  # Updated import
 from langchain_community.utilities.sql_database import SQLDatabase
 from langchain_community.agent_toolkits import create_sql_agent
 from langchain.agents.agent_types import AgentType
