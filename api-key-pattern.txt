@@ -1,0 +1,3 @@
+regex:sk-[a-zA-Z0-9]{48}
+regex:OPENAI_API_KEY=sk-[a-zA-Z0-9]{48}
+regex:api_key\s*=\s*["\']sk-[a-zA-Z0-9]{48}["\']

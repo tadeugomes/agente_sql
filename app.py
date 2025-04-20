@@ -62,10 +62,15 @@ def show_history():
 
 # Interface principal
 def main():
-    st.title("🤖 Agente SQL em Linguagem Natural")
+    st.title("🤖 Agente SQL em Linguagem Natural - Estatístico Aquaviário")
     st.markdown("""
-    Este aplicativo permite que você faça consultas em linguagem natural ao banco de dados de cargas.
+    Este aplicativo permite que você faça consultas em linguagem natural ao banco de dados de cargas do Estatístico Aquaviário para o ano de 2023.
     O agente de IA traduzirá sua pergunta para SQL e retornará os resultados.
+    Você pode consultar dados sobre exportações, importações e movimentações de cargas em portos brasileiros.
+    Possibilidades incluem questões como:
+    - Qual quantidade de carga movimentada pelo porto de Santos em 2023? 
+    - Quais foram os principais produtos exportados pelo Itaqui em 2023?
+    - Quais os 5 produtos mais importados pelo Porto de Vitória?
     """)
     
     # Barra lateral
@@ -79,7 +84,7 @@ def main():
         
         # Campo de entrada para a consulta
         query = st.text_area("Digite sua pergunta em linguagem natural:", 
-                            placeholder="Exemplo: Quantas cargas foram registradas em 2023?",
+                            placeholder="Exemplo: Quantas toneladas foram exportadas pelo porto de Santos em 2023?",
                             height=100)
         
         # Botão para processar a consulta

@@ -11,33 +11,24 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 # Carregar variáveis de ambiente do arquivo .env
 load_dotenv()
 
-def get_openai_api_key():
-    """
-    Get the OpenAI API key from various possible sources
-    """
-    # Try getting from environment variable first
-    api_key = os.getenv("OPENAI_API_KEY")
-    
-    # If not in environment, try getting from streamlit secrets
-    if not api_key:
-        try:
-            import streamlit as st
-            api_key = st.secrets["OPENAI_API_KEY"]
-        except (KeyError, ImportError, FileNotFoundError):
-            pass
-    
-    if not api_key:
-        raise ValueError("❌ Erro: OPENAI_API_KEY não encontrada nas variáveis de ambiente ou nos secrets do Streamlit. "+
-                        "Por favor, configure a chave da API OpenAI em uma das seguintes formas:\n"+
-                        "1. No arquivo .env como OPENAI_API_KEY=sua-chave\n"+
-                        "2. Nas secrets do Streamlit (.streamlit/secrets.toml) como OPENAI_API_KEY=sua-chave")
-    
-    return api_key
+# Obter a chave da OpenRouter
+api_key = os.getenv("OPENROUTER_API_KEY")
+
+# Se não encontrar no ambiente, tenta buscar nos secrets do Streamlit
+if not api_key:
+    try:
+        import streamlit as st
+        api_key = st.secrets["OPENROUTER_API_KEY"]
+    except (KeyError, ImportError, FileNotFoundError):
+        api_key = None
+
+if not api_key:
+    raise ValueError("❌ Erro: OPENROUTER_API_KEY não encontrada nas variáveis de ambiente ou nos secrets do Streamlit.")
 
 class SQLAgent:
     def __init__(self, db_path=None):
         """
-        Inicializa o LangChain SQL Agent com OpenAI e compreensão contextual.
+        Inicializa o LangChain SQL Agent com OpenRouter e compreensão contextual.
 
         Args:
             db_path (str, optional): Caminho para o arquivo do banco de dados. 
@@ -62,14 +53,12 @@ class SQLAgent:
         # Carregar metadados do banco de dados
         self.metadata = self._load_metadata()
         
-        # Obter a chave da API OpenAI usando a nova função
-        api_key = get_openai_api_key()
-        
-        # Inicializar o modelo usando OpenAI
+        # Inicializar o modelo usando OpenRouter
         llm = ChatOpenAI(
-            model="gpt-4-turbo",  # Usando GPT-4 Turbo que suporta ferramentas
+            model="deepseek/deepseek-v3-base:free",  # Mantendo o modelo deepseek
             openai_api_key=api_key,
-            temperature=0
+            openai_api_base="https://openrouter.ai/api/v1"
+            # Removendo completamente os headers para testar
         )
 
         # Inicializar a conexão com o banco de dados SQL
@@ -442,3 +431,4 @@ if __name__ == '__main__':
 
     except Exception as e:
         print(f"An error occurred during testing: {e}")
+

@@ -80,3 +80,32 @@ Se você encontrar o erro `OPENAI_API_KEY não encontrada nas variáveis de ambi
 - openai
 - python-dotenv
 - sqlalchemy
+
+## Segurança de API Keys
+
+Este projeto inclui várias ferramentas para garantir a segurança das chaves de API:
+
+### Prevenção de Vazamentos
+
+1. **Pre-commit Hook**: Impede que chaves de API sejam acidentalmente commitadas.
+   - Instale com: `./install_pre_commit_hook.sh`
+
+2. **Arquivo .env.example**: Fornece um modelo para configuração de variáveis de ambiente sem expor chaves reais.
+
+3. **Documentação de Segurança**: Consulte os seguintes arquivos para mais informações:
+   - `API_KEY_SECURITY.md`: Melhores práticas para gerenciamento de chaves de API
+   - `REMOVING_API_KEYS_FROM_GIT_HISTORY.md`: Instruções para remover chaves de API do histórico do Git
+
+### Remoção de Chaves do Histórico Git
+
+Se você acidentalmente commitou uma chave de API, use o script fornecido para removê-la:
+```bash
+./remove_api_key_from_history.sh
+```
+
+### Melhores Práticas
+
+- Nunca comite chaves de API reais no repositório
+- Use variáveis de ambiente ou secrets do Streamlit
+- Revogue e gere novas chaves se suspeitar que foram expostas
+- Verifique regularmente o histórico de commits para garantir que nenhuma chave foi exposta
