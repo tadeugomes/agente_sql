@@ -1,37 +1,30 @@
-# Agente SQL em Linguagem Natural
+# Agente SQL
 
 Este aplicativo permite fazer consultas em linguagem natural a um banco de dados de cargas portuárias. O agente de IA traduz perguntas em linguagem natural para SQL e retorna os resultados.
 
-## Configuração Local
+## Configuração do Ambiente
 
 1. Clone o repositório:
-   ```bash
-   git clone https://github.com/tadeugomes/agente_sql.git
-   cd agente_sql
-   ```
+```bash
+git clone https://github.com/seu-usuario/agente_sql.git
+cd agente_sql
+```
 
-2. Crie e ative um ambiente virtual:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # No Windows: venv\Scripts\activate
-   ```
+2. Execute o script de configuração do ambiente:
+```bash
+./setup_environment.sh
+```
 
-3. Instale as dependências:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Este script irá:
+- Criar um arquivo `.env` a partir do template se não existir
+- Solicitar sua OpenAI API Key se não estiver configurada
+- Configurar as permissões necessárias
 
-4. Configure as variáveis de ambiente:
-   - Crie um arquivo `.env` na raiz do projeto com o seguinte conteúdo:
-     ```
-     OPENAI_API_KEY=sua-chave-da-api-aqui
-     GOOGLE_API_KEY=sua-chave-do-google-aqui  # Se necessário
-     ```
+3. Se preferir configurar manualmente:
+   - Copie o arquivo `.env.example` para `.env`
+   - Edite o arquivo `.env` e adicione sua OpenAI API Key
 
-5. Execute o aplicativo:
-   ```bash
-   streamlit run app.py
-   ```
+⚠️ IMPORTANTE: Nunca compartilhe ou comite sua API Key! O arquivo `.env` já está no `.gitignore` para evitar commits acidentais.
 
 ## Implantação no Streamlit Cloud
 
