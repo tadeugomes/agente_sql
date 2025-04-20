@@ -17,43 +17,54 @@ def get_openai_api_key():
     """
     Get the OpenAI API key from Streamlit secrets
     """
-    return st.secrets["OPENAI_API_KEY"]
+    try:
+        api_key = st.secrets["OPENAI_API_KEY"]
+        # Debug: verificar se a chave está presente (apenas os primeiros caracteres)
+        st.write(f"API Key encontrada: {api_key[:10]}...")
+        return api_key
+    except Exception as e:
+        st.error(f"Erro ao obter a chave da API: {str(e)}")
+        raise
 
 class SQLAgent:
     def __init__(self, db_path=None):
         """
         Initialize the SQL Agent with configuration
         """
-        self.api_key = get_openai_api_key()
-        
-        # Inicializar cliente OpenAI
-        self.client = OpenAI(api_key=self.api_key)
-        
-        # Se não foi fornecido um caminho para o banco, usar o padrão
-        if not db_path:
-            db_path = os.path.join(os.path.dirname(__file__), 'cargas.db')
-        
-        # Verificar se o arquivo do banco existe
-        if not os.path.exists(db_path):
-            raise FileNotFoundError(f"Banco de dados não encontrado em: {db_path}")
-        
-        # Inicializar o SQLDatabase do LangChain
-        self.db = SQLDatabase.from_uri(f"sqlite:///{db_path}")
-        
-        # Configurar o modelo de linguagem
-        self.llm = ChatOpenAI(
-            temperature=0,
-            model="gpt-4-1106-preview",
-            api_key=self.api_key
-        )
-        
-        # Criar o agente SQL
-        self.agent_executor = create_sql_agent(
-            llm=self.llm,
-            db=self.db,
-            agent_type=AgentType.OPENAI_FUNCTIONS,
-            verbose=True
-        )
+        try:
+            self.api_key = get_openai_api_key()
+            
+            # Inicializar cliente OpenAI
+            self.client = OpenAI(api_key=self.api_key)
+            
+            # Se não foi fornecido um caminho para o banco, usar o padrão
+            if not db_path:
+                db_path = os.path.join(os.path.dirname(__file__), 'cargas.db')
+            
+            # Verificar se o arquivo do banco existe
+            if not os.path.exists(db_path):
+                raise FileNotFoundError(f"Banco de dados não encontrado em: {db_path}")
+            
+            # Inicializar o SQLDatabase do LangChain
+            self.db = SQLDatabase.from_uri(f"sqlite:///{db_path}")
+            
+            # Configurar o modelo de linguagem
+            self.llm = ChatOpenAI(
+                temperature=0,
+                model="gpt-4-1106-preview",
+                api_key=self.api_key
+            )
+            
+            # Criar o agente SQL
+            self.agent_executor = create_sql_agent(
+                llm=self.llm,
+                db=self.db,
+                agent_type=AgentType.OPENAI_FUNCTIONS,
+                verbose=True
+            )
+        except Exception as e:
+            st.error(f"Erro na inicialização do SQLAgent: {str(e)}")
+            raise
     
     def process_query(self, query):
         """
