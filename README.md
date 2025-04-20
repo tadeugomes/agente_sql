@@ -1,70 +1,108 @@
-# Agente SQL
+# 🤖 Agente SQL em Linguagem Natural - Estatístico Aquaviário
 
-Este aplicativo permite fazer consultas em linguagem natural a um banco de dados de cargas portuárias. O agente de IA traduz perguntas em linguagem natural para SQL e retorna os resultados.
+Este aplicativo Streamlit permite que você faça consultas em linguagem natural ao banco de dados de cargas do Estatístico Aquaviário (ANTAQ) para o ano de 2023. O agente de IA, utilizando modelos da OpenAI através do LangChain, traduzirá sua pergunta para SQL, executará a consulta no banco de dados SQLite e retornará os resultados.
 
-## Configuração do Ambiente
+## Funcionalidades
 
-1. Clone o repositório:
-```bash
-git clone https://github.com/seu-usuario/agente_sql.git
-cd agente_sql
-```
+*   Consulta em linguagem natural ao banco de dados `cargas.db`.
+*   Tradução da consulta para SQL usando LLMs (OpenAI).
+*   Execução da consulta SQL no banco de dados SQLite.
+*   Exibição dos resultados e da consulta SQL gerada.
+*   Histórico das consultas realizadas na sessão.
+*   Configuração segura da chave da API OpenAI via Streamlit Secrets.
 
-2. Execute o script de configuração do ambiente:
-```bash
-./setup_environment.sh
-```
+## Pré-requisitos
 
-Este script irá:
-- Criar um arquivo `.env` a partir do template se não existir
-- Solicitar sua OpenAI API Key se não estiver configurada
-- Configurar as permissões necessárias
+*   Python 3.9+
+*   Git
 
-3. Se preferir configurar manualmente:
-   - Copie o arquivo `.env.example` para `.env`
-   - Edite o arquivo `.env` e adicione sua OpenAI API Key
+## Instalação
 
-⚠️ IMPORTANTE: Nunca compartilhe ou comite sua API Key! O arquivo `.env` já está no `.gitignore` para evitar commits acidentais.
+1.  **Clone o repositório:**
+    ```bash
+    git clone https://github.com/tadeugomes/agente_sql.git
+    cd agente_sql
+    ```
 
-## Implantação no Streamlit Cloud
+2.  **Crie e ative um ambiente virtual:** (Recomendado)
+    ```bash
+    # Exemplo usando venv
+    python -m venv .venv
+    source .venv/bin/activate  # Linux/macOS
+    # OU
+    # .venv\\Scripts\\activate  # Windows
+    ```
 
-### Preparação para Implantação
+3.  **Instale as dependências:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+    *(Isso instalará Streamlit, LangChain, OpenAI >= 1.0.0 e outras bibliotecas necessárias.)*
 
-1. Certifique-se de que o repositório esteja no GitHub.
+## Configuração da Chave da API OpenAI
 
-2. Adicione o arquivo `.streamlit/secrets.toml` ao `.gitignore` para não expor suas chaves de API.
+Este aplicativo requer uma chave da API OpenAI para funcionar. A configuração é feita usando o sistema de "Secrets" do Streamlit, que funciona tanto para desenvolvimento local quanto para deploy no Streamlit Cloud.
 
-3. Certifique-se de que o arquivo `requirements.txt` esteja atualizado com todas as dependências necessárias.
+**NÃO COLOQUE SUA CHAVE DIRETAMENTE NO CÓDIGO OU EM ARQUIVOS NÃO IGNORADOS PELO GIT.**
 
-### Configuração no Streamlit Cloud
+1.  **Obtenha sua chave:** Crie ou copie sua chave da API no painel da [OpenAI](https://platform.openai.com/account/api-keys). A chave deve começar com `sk-...`.
 
-1. Acesse [Streamlit Cloud](https://streamlit.io/cloud) e faça login com sua conta GitHub.
+2.  **Configuração Local:**
+    *   Crie o diretório `.streamlit` na raiz do projeto, caso não exista:
+        ```bash
+        mkdir -p .streamlit
+        ```
+    *   Crie um arquivo chamado `secrets.toml` dentro do diretório `.streamlit`:
+        ```
+        touch .streamlit/secrets.toml
+        ```
+    *   Abra o arquivo `.streamlit/secrets.toml` e adicione sua chave no seguinte formato:
+        ```toml
+        # .streamlit/secrets.toml
 
-2. Clique em "New app" e selecione o repositório, branch e arquivo principal (app.py).
+        OPENAI_API_KEY = "sua_chave_sk-..."
+        ```
+        Substitua `"sua_chave_sk-..."` pela sua chave real da API OpenAI.
+    *   O arquivo `.streamlit/secrets.toml` já está incluído no `.gitignore` para evitar que sua chave seja enviada acidentalmente para o GitHub.
 
-3. Configure os segredos (secrets):
-   - Na página do seu aplicativo no Streamlit Cloud, clique em "Advanced settings".
-   - Na seção "Secrets", adicione suas chaves de API no formato TOML:
-     ```toml
-     OPENAI_API_KEY = "sua-chave-da-api-aqui"
-     GOOGLE_API_KEY = "sua-chave-do-google-aqui"  # Se necessário
-     ```
+3.  **Configuração no Streamlit Cloud:**
+    *   Após fazer o deploy do seu aplicativo no Streamlit Cloud.
+    *   Vá para as configurações (Settings ⚙️) do seu aplicativo.
+    *   Navegue até a seção "Secrets".
+    *   Adicione uma nova variável secreta com o nome `OPENAI_API_KEY` e cole sua chave da API OpenAI como valor. O formato deve ser:
+        ```toml
+        OPENAI_API_KEY = "sua_chave_sk-..."
+        ```
+    *   Salve as configurações. O Streamlit Cloud injetará essa chave de forma segura no ambiente do seu aplicativo.
 
-4. Clique em "Deploy" para implantar o aplicativo.
+## Executando Localmente
 
-### Solução de Problemas
+1.  Certifique-se de que seu ambiente virtual está ativado.
+2.  Verifique se você configurou o arquivo `.streamlit/secrets.toml` conforme as instruções acima.
+3.  Execute o aplicativo Streamlit:
+    ```bash
+    streamlit run app.py
+    ```
+4.  Abra seu navegador no endereço fornecido (geralmente `http://localhost:8501`).
 
-Se você encontrar o erro `OPENAI_API_KEY não encontrada nas variáveis de ambiente`, verifique se:
+## Deploy no Streamlit Cloud
 
-1. As chaves de API estão corretamente configuradas nos segredos do Streamlit Cloud.
-2. O código está configurado para buscar as chaves tanto das variáveis de ambiente quanto dos segredos do Streamlit.
+1.  Certifique-se de que seu código está atualizado no GitHub (sem incluir o arquivo `.streamlit/secrets.toml`).
+2.  Conecte seu repositório GitHub ao Streamlit Cloud.
+3.  Crie um novo aplicativo ou configure um existente para usar este repositório e a branch correta (`clean_main`).
+4.  **Configure a chave da API** na seção "Secrets" das configurações do aplicativo no Streamlit Cloud, como descrito na seção de Configuração acima.
+5.  Faça o deploy ou reinicie o aplicativo.
 
 ## Estrutura do Projeto
 
-- `app.py`: Aplicativo Streamlit principal
-- `sql_agent.py`: Implementação do agente SQL usando LangChain
-- `.streamlit/`: Configurações do Streamlit
-- `requirements.txt`: Dependências do projeto
+*   `app.py`: Arquivo principal da aplicação Streamlit.
+*   `sql_agent.py`: Classe que encapsula a lógica do agente LangChain SQL.
+*   `openai_sql_query.py`: Implementação alternativa usando a API OpenAI diretamente (pode ser usada para testes ou abordagens diferentes).
+*   `requirements.txt`: Lista de dependências Python.
+*   `cargas.db`: Banco de dados SQLite com os dados de 2023.
+*   `.streamlit/secrets.toml`: (Local) Armazena a chave da API OpenAI (ignorada pelo Git).
+*   `.gitignore`: Especifica arquivos e diretórios a serem ignorados pelo Git.
+*   `README.md`: Esta documentação.
 
 ## Dependências Principais
 
