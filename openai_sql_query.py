@@ -8,30 +8,14 @@ import sqlite3
 from dotenv import load_dotenv
 from openai import OpenAI
 from langchain_community.utilities.sql_database import SQLDatabase
+import streamlit as st
 
 # Carregar variáveis de ambiente
 load_dotenv()
 
 def get_api_key():
-    """Get API key from environment with proper error handling"""
-    # Get API key from environment variable - never hardcode API keys
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        try:
-            # Try to get from Streamlit secrets if environment variable is not set
-            import streamlit as st
-            api_key = st.secrets["OPENAI_API_KEY"]
-        except (KeyError, ImportError, FileNotFoundError):
-            pass
-    
-    if not api_key:
-        raise ValueError(
-            "❌ Erro: OPENAI_API_KEY não encontrada nas variáveis de ambiente ou nos secrets do Streamlit. "
-            "Configure a chave da API em uma das seguintes formas:\n"
-            "1. No arquivo .env como OPENAI_API_KEY=sua-chave\n"
-            "2. Nas secrets do Streamlit (.streamlit/secrets.toml) como OPENAI_API_KEY=sua-chave"
-        )
-    return api_key
+    """Get API key from Streamlit secrets"""
+    return st.secrets["OPENAI_API_KEY"]
 
 class OpenAISQLQuery:
     def __init__(self, db_path=None):
@@ -45,7 +29,7 @@ class OpenAISQLQuery:
         # Obter a chave da API usando a função auxiliar
         self.api_key = get_api_key()
         
-        # Inicializar o cliente OpenAI com a chave da API do ambiente
+        # Inicializar o cliente OpenAI com a chave da API
         self.client = OpenAI(api_key=self.api_key)
         
         # Localizar o banco de dados
@@ -242,156 +226,4 @@ EXEMPLOS DE CONSULTAS:
 
 1. "Quantas toneladas foram embarcadas pelo Porto do Itaqui em 2023?"
    SQL: 
-   ```sql
-   SELECT SUM(VLPesoCargaBruta) as total_toneladas, COUNT(*) as total_registros
-   FROM Cargas
-   WHERE Sentido = 'Embarcados' AND Origem = 'BRIQI' AND Ano = '2023'
    ```
-
-2. "Qual o total de carga desembarcada em Santos em 2023?"
-   SQL:
-   ```sql
-   SELECT SUM(VLPesoCargaBruta) as total_toneladas, COUNT(*) as total_registros
-   FROM Cargas
-   WHERE Sentido = 'Desembarcados' AND Destino IN ('BRSSZ', 'BRSP008') AND Ano = '2023'
-   ```
-
-3. "Quantos TEUs de contêineres foram movimentados em 2023?"
-   SQL:
-   ```sql
-   SELECT SUM(TEU) as total_teus, COUNT(*) as total_registros
-   FROM Cargas
-   WHERE Ano = '2023'
-   ```
-
-4. "Qual o volume de granéis líquidos exportados em 2023?"
-   SQL:
-   ```sql
-   SELECT SUM(VLPesoCargaBruta) as total_toneladas, COUNT(*) as total_registros
-   FROM Cargas
-   WHERE Natureza_da_Carga = 'Granel Líquido e Gasoso' AND Sentido = 'Embarcados' AND Ano = '2023'
-   ```
-
-5. "Quais os 5 principais países de destino das exportações brasileiras em 2023?"
-   SQL:
-   ```sql
-   SELECT Pais_Destino, SUM(VLPesoCargaBruta) as total_toneladas, COUNT(*) as total_registros
-   FROM Cargas
-   WHERE Sentido = 'Embarcados' AND Ano = '2023'
-   GROUP BY Pais_Destino
-   ORDER BY total_toneladas DESC
-   LIMIT 5
-   ```
-
-Sua tarefa é:
-1. Analisar a consulta em linguagem natural
-2. Gerar uma consulta SQL válida que responda à pergunta
-3. Fornecer uma explicação clara da consulta SQL gerada
-4. Retornar APENAS a consulta SQL sem comentários adicionais
-
-Responda APENAS com a consulta SQL, sem nenhum texto adicional.
-"""
-        return context
-    
-    def process_query(self, query):
-        """
-        Processa uma consulta em linguagem natural e retorna a consulta SQL correspondente.
-        
-        Args:
-            query (str): Consulta em linguagem natural.
-            
-        Returns:
-            dict: Dicionário contendo a consulta original, a consulta SQL gerada e o resultado.
-        """
-        try:
-            # Criar a mensagem para o modelo
-            response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": self.context},
-                    {"role": "user", "content": query}
-                ]
-            )
-            
-            # Extrair a consulta SQL da resposta
-            sql_query = response.choices[0].message.content.strip()
-            
-            # Remover marcadores de código SQL se presentes
-            if sql_query.startswith("```sql"):
-                sql_query = sql_query[6:]
-            if sql_query.endswith("```"):
-                sql_query = sql_query[:-3]
-            
-            sql_query = sql_query.strip()
-            
-            # Executar a consulta SQL
-            result = self.db.run(sql_query)
-            
-            # Armazenar no histórico
-            self.memory.append({
-                "query": query,
-                "sql": sql_query,
-                "result": result
-            })
-            
-            return {
-                "query": query,
-                "sql": sql_query,
-                "result": result
-            }
-        except Exception as e:
-            print(f"Erro ao processar consulta: {e}")
-            error_message = f"Erro: {str(e)}"
-            self.memory.append({
-                "query": query,
-                "sql": "Error generating SQL",
-                "result": error_message
-            })
-            return {
-                "query": query,
-                "sql": "Error generating SQL",
-                "result": error_message
-            }
-    
-    def get_memory(self):
-        """
-        Retorna o histórico de consultas processadas.
-        
-        Returns:
-            list: Lista de dicionários contendo as consultas processadas.
-        """
-        return self.memory
-
-# Exemplo de uso
-if __name__ == "__main__":
-    try:
-        # Inicializar o sistema de consulta SQL
-        sql_query = OpenAISQLQuery()
-        print("✅ Sistema de consulta SQL inicializado com sucesso!")
-        
-        # Testar uma consulta simples
-        test_query = "Quantas cargas foram registradas no ano de 2023?"
-        print(f"\nExecutando consulta de teste: '{test_query}'")
-        
-        response = sql_query.process_query(test_query)
-        
-        print("\n--- Resultado da Consulta ---")
-        print(f"Consulta: {response['query']}")
-        print(f"SQL: {response['sql']}")
-        print(f"Resultado: {response['result']}")
-        print("-----------------------------")
-        
-        # Testar outra consulta
-        test_query_2 = "Quais as 5 mercadorias mais frequentes?"
-        print(f"\nExecutando consulta de teste: '{test_query_2}'")
-        
-        response_2 = sql_query.process_query(test_query_2)
-        
-        print("\n--- Resultado da Consulta ---")
-        print(f"Consulta: {response_2['query']}")
-        print(f"SQL: {response_2['sql']}")
-        print(f"Resultado: {response_2['result']}")
-        print("-----------------------------")
-        
-    except Exception as e:
-        print(f"❌ Erro ao testar o sistema de consulta SQL: {e}")

@@ -1,4 +1,5 @@
 import streamlit as st
+from openai import OpenAI
 # from database_tools import DatabaseTools # No longer needed directly here
 from sql_agent import SQLAgent
 import pandas as pd
@@ -6,7 +7,10 @@ import os
 
 from dotenv import load_dotenv
 load_dotenv()
- 
+
+# Configurar cliente OpenAI usando st.secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 # Configuração da página
 st.set_page_config(
     page_title="Agente SQL em Linguagem Natural",

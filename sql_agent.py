@@ -7,30 +7,17 @@ from langchain_community.utilities.sql_database import SQLDatabase
 from langchain_community.agent_toolkits import create_sql_agent
 from langchain.agents.agent_types import AgentType
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+import streamlit as st
+from openai import OpenAI
 
 # Carregar variáveis de ambiente do arquivo .env
 load_dotenv()
 
 def get_openai_api_key():
     """
-    Get the OpenAI API key from various possible sources
+    Get the OpenAI API key from Streamlit secrets
     """
-    api_key = os.getenv("OPENAI_API_KEY")
-    
-    if not api_key:
-        try:
-            import streamlit as st
-            api_key = st.secrets["OPENAI_API_KEY"]
-        except (KeyError, ImportError, FileNotFoundError):
-            pass
-    
-    if not api_key:
-        raise ValueError("❌ Erro: OPENAI_API_KEY não encontrada nas variáveis de ambiente ou nos secrets do Streamlit. "+
-                        "Por favor, configure a chave da API OpenAI em uma das seguintes formas:\n"+
-                        "1. No arquivo .env como OPENAI_API_KEY=sua-chave\n"+
-                        "2. Nas secrets do Streamlit (.streamlit/secrets.toml) como OPENAI_API_KEY=sua-chave")
-    
-    return api_key
+    return st.secrets["OPENAI_API_KEY"]
 
 class SQLAgent:
     def __init__(self, db_path=None):
@@ -38,6 +25,9 @@ class SQLAgent:
         Initialize the SQL Agent with configuration
         """
         self.api_key = get_openai_api_key()
+        
+        # Inicializar cliente OpenAI
+        self.client = OpenAI(api_key=self.api_key)
         
         # Se não foi fornecido um caminho para o banco, usar o padrão
         if not db_path:

@@ -7,5 +7,5 @@ sqlalchemy
 python-dotenv
 langchain-community
 langchain-openai
-openai
+openai>=1.0.0
 langchain-openrouter
